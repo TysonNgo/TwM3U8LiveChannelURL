@@ -30,8 +30,9 @@ def get_client_id():
 
 headers = {"client-id": get_client_id()}
 
+"""
 access = requests.get(
-	'https://api.twitch.tv/api/channels/'+channel_name+
+	'https://api.twitch.tv/v5/channels/'+channel_name+
 	'/access_token'+
 	'?oauth_token=undefined'+
 	'&need_https=true'+
@@ -39,11 +40,18 @@ access = requests.get(
 	'&player_type=site'+
 	'&player_backend=mediaplayer',
 	headers=headers).json()
+"""
+
+data = "{\"operationName\":\"PlaybackAccessToken_Template\",\"query\":\"query PlaybackAccessToken_Template($login: String!, $isLive: Boolean!, $vodID: ID!, $isVod: Boolean!, $playerType: String!) {  streamPlaybackAccessToken(channelName: $login, params: {platform: \\\"web\\\", playerBackend: \\\"mediaplayer\\\", playerType: $playerType}) @include(if: $isLive) {    value    signature    __typename  }  videoPlaybackAccessToken(id: $vodID, params: {platform: \\\"web\\\", playerBackend: \\\"mediaplayer\\\", playerType: $playerType}) @include(if: $isVod) {    value    signature    __typename  }}\",\"variables\":{\"isLive\":true,\"login\":\"##CHANNEL_NAME##\",\"isVod\":false,\"vodID\":\"\",\"playerType\":\"site\"}}".replace("##CHANNEL_NAME##", channel_name)
+access = requests.post('https://gql.twitch.tv/gql', headers=headers, data=data).json()
+
+signature = access['data']['streamPlaybackAccessToken']['signature']
+token = access['data']['streamPlaybackAccessToken']['value']
 
 url = (
 	'https://usher.ttvnw.net/api/channel/hls/'+channel_name+'.m3u8'+
-	'?sig='+access['sig']+
-	'&token='+quote(access['token'])
+	'?sig='+signature+
+	'&token='+quote(token)
 )
 
 print (url)
